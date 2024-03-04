@@ -1,3 +1,8 @@
+from training_parameters import *
+
+import torch
+import torch.nn as nn
+from torch.nn import functional as F
 #whole transformer architecture
 
 class Head(nn.Module):
@@ -104,7 +109,7 @@ class TransformerLanguageModel(nn.Module):
             idx = torch.cat((idx, idx_next), dim=1)
         return idx
 
-def get_batch(split, batch_size, context_length):
+def get_batch(split, train_data, valid_data, batch_size, context_length):
     data = train_data if split == 'train' else valid_data
 
     idxs = torch.randint(low=0, high=len(data)-CONTEXT_LEN, size=(BATCH_SIZE,))
@@ -114,14 +119,14 @@ def get_batch(split, batch_size, context_length):
     return x,y
 
 @torch.no_grad()
-def estimate_loss():
+def estimate_loss(model, train_data, valid_data):
     out = {}
     #turn on evaluation mode
     model.eval()
     for split in ['train','valid']:
         losses = torch.zeros(EVAL_ITERS)
         for k in range(EVAL_ITERS):
-            x_batch, y_batch = get_batch(split, BATCH_SIZE, CONTEXT_LEN)
+            x_batch, y_batch = get_batch(split, train_data, valid_data, BATCH_SIZE, CONTEXT_LEN)
             logits, loss = model(x_batch, y_batch)
             losses[k] = loss.item()
         out[split] = losses.mean()
